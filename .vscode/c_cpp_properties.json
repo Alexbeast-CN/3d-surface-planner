@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "ROS",
+            "browse": {
+                "path": [
+                    "${workspaceRoot}/**",
+                    "/opt/ros/${ROS_DISTRO}/include/**"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "${workspaceRoot}/**",
+                "/opt/ros/${ROS_DISTRO}/include/**",
+                "/opt/ros/${ROS_DISTRO}/lib/**",
+                "/usr/include/**",
+                "/usr/include/opencv4/**"
+            ],
+            "defines": [],
+            "intelliSenseMode": "clang-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "compileCommands": "${workspaceRoot}/build/compile_commands.json"
+        }
+    ],
+    "version": 4
+}
