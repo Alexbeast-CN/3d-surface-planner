@@ -2,6 +2,14 @@
 
 ## 设置开发环境
 
+### 代码格式化
+
+为了保证代码风格的一致性，本仓库使用 `clang-format` 对 C++ 进行格式化，使用 `flake8` 对 Python 进行格式化，使用 `xmllint` 对 xml 进行格式化。以上工具都已在 Dockerfile 中安装。在 vscode 中需要安装以下插件： `clang-format`, `Flake8`, `XML` 并进行配置。为了保证代码风格的一致性，将 `pre-commit` 文件复制到 `.git/hooks` 目录下，这样每次提交代码时都会自动进行格式化。
+
+```bash
+cp .pre-commit .git/hooks/pre-commit
+```
+
 本仓库推荐使用 Docker 进行开发和部署，如果你不熟悉 Docker，请查看博客 [使用 Docker 进行 ROS2 的开发](https://zhuanlan.zhihu.com/p/637040850)。
 
 在进行以下操作之前，请确保你已经安装了 Docker 和 Nvidia Docker(如果你的电脑有 Nvidia 显卡)。

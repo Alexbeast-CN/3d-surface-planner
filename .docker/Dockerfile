@@ -44,6 +44,8 @@ RUN apt-get update && \
   wget \
   openssh-client \
   clang-format \
+  flake8 \
+  libxml2-utils \
   tmux \
   openssh-server \
   bash-completion \
