@@ -39,7 +39,7 @@ cd .docker
 ./run.sh --no-nvidia
 ```
 
-此步骤会在你的电脑上启动一个名为 `3d-surface-planner_latest` Docker 容器，该容器会在电脑重启后自动启动。
+此步骤会在你的电脑上启动一个名为 `3d-surface-planner_latest` Docker 容器。
 
 ### 进入 Docker 容器
 

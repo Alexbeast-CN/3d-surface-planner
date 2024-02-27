@@ -137,7 +137,6 @@ docker run -itd \
   --security-opt seccomp=unconfined \
   --ipc=host \
   --network=host \
-  --restart=always \
   $DOCKER_OPTS \
   $IMG
 
