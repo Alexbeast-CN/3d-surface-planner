@@ -43,7 +43,9 @@ RUN apt-get update && \
   gdbserver \
   wget \
   openssh-client \
-  clang-format \
+  clang-format-11 \
+  cpplint \
+  cppcheck \
   flake8 \
   libxml2-utils \
   tmux \
@@ -95,6 +97,9 @@ RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share
   libopencv-dev \
   && apt-get clean
 
+# install pre-commit
+RUN pip install pre-commit
+
 # Initialize rosdep
 RUN pip install rosdepc && rosdepc init && rosdepc update
 
@@ -134,5 +139,6 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /home/$USERNAME/.bashrc && \
 
 # Commands below run as the developer user
 USER $USERNAME
+
 # When running a container start in the developer's home folder
-WORKDIR /home/$USERNAME
+WORKDIR /home/$USERNAME/3d-surface-planner
