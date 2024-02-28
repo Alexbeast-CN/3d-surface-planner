@@ -135,7 +135,8 @@ ENV GIT_SSH_COMMAND="/usr/local/bin/git-ssh"
 
 # setup bashrc
 RUN echo "source /opt/ros/humble/setup.bash" >> /home/$USERNAME/.bashrc && \
-    echo "tmux setw -g mouse on" >> /home/$USERNAME/.bashrc
+  echo "tmux setw -g mouse on" >> /home/$USERNAME/.bashrc && \
+  echo "export PATH="$PATH:/home/developer/.local/bin"" >> /home/$USERNAME/.bashrc
 
 # Commands below run as the developer user
 USER $USERNAME
