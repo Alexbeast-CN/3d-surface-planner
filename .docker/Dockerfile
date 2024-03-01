@@ -123,8 +123,7 @@ ARG SSH_PRIVATE_KEY
 RUN mkdir -p /home/$USERNAME/.ssh && \
   echo "$SSH_PRIVATE_KEY" > /home/$USERNAME/.ssh/id_rsa && \
   chown $USERNAME:sudo /home/$USERNAME/.ssh/id_rsa && \
-  chmod 600 /home/$USERNAME/.ssh/id_rsa && \
-  ssh-keyscan 172.20.21.21 >> /home/$USERNAME/.ssh/known_hosts
+  chmod 600 /home/$USERNAME/.ssh/id_rsa
 
 # Create a custom script to use for Git SSH commands
 RUN echo -e '#!/bin/sh\nexec /usr/bin/ssh -o "StrictHostKeyChecking=no" -i /home/$USERNAME/.ssh/id_rsa "$@"' > /usr/local/bin/git-ssh
@@ -135,7 +134,6 @@ ENV GIT_SSH_COMMAND="/usr/local/bin/git-ssh"
 
 # setup bashrc
 RUN echo "source /opt/ros/humble/setup.bash" >> /home/$USERNAME/.bashrc && \
-  echo "tmux setw -g mouse on" >> /home/$USERNAME/.bashrc && \
   echo "export PATH="$PATH:/home/developer/.local/bin"" >> /home/$USERNAME/.bashrc
 
 # Commands below run as the developer user
