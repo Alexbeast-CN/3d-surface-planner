@@ -29,7 +29,6 @@ RUN apt-get update && \
   mercurial \
   python3-dbg \
   python3-empy \
-  python3-numpy \
   python3-pip \
   python3-psutil \
   python3-venv \
@@ -97,8 +96,11 @@ RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share
   libopencv-dev \
   && apt-get clean
 
-# install pre-commit
-RUN pip install pre-commit
+# install python packages
+RUN pip install \
+  pre-commit \
+  open3d \
+  numpy==1.24
 
 # Initialize rosdep
 RUN pip install rosdepc && rosdepc init && rosdepc update
