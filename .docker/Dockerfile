@@ -100,7 +100,8 @@ RUN /bin/sh -c 'wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share
 RUN pip install \
   pre-commit \
   open3d \
-  numpy==1.24
+  numpy==1.24 \
+  pylint
 
 # Initialize rosdep
 RUN pip install rosdepc && rosdepc init && rosdepc update
