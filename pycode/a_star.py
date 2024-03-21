@@ -3,6 +3,7 @@ This module provides functions using A* path planning on 3d surface
 """
 
 import os
+import math
 import heapq
 import random
 
@@ -67,6 +68,9 @@ class Graph:
         """
         return self.adj_list.get(current, [])
 
+
+
+
 def build_graph(vertices, faces):
     """
     This function is used to build a graph from a list of vertices and faces.
@@ -95,6 +99,9 @@ def build_graph(vertices, faces):
 
     return graph
 
+
+
+
 def heuristic(a, b, graph):
     """
     This function is used to calculate the heuristic value (estimated cost to reach the goal) 
@@ -115,6 +122,23 @@ def heuristic(a, b, graph):
     dy = pos_a[1] - pos_b[1]
     dz = pos_a[2] - pos_b[2]
     return (dx ** 2 + dy ** 2 + dz ** 2) ** 0.5
+
+def euclidean_distance(pos_a, pos_b):
+    """
+    Calculate the Euclidean distance between two points in 3D space.
+
+    Parameters:
+    pos_a (tuple): The position of the first point.
+    pos_b (tuple): The position of the second point.
+
+    Returns:
+    float: The Euclidean distance between the two points.
+    """
+    dx = pos_a[0] - pos_b[0]
+    dy = pos_a[1] - pos_b[1]
+    dz = pos_a[2] - pos_b[2]
+    return math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+
 
 def astar_path(graph, start, goal):
     """
@@ -147,7 +171,8 @@ def astar_path(graph, start, goal):
 
         # 遍历当前节点的所有邻居
         for next_node in graph.neighbors(current):
-            new_cost = cost_so_far[current] + graph.edges.get((current, next_node), float('inf'))
+            #new_cost = cost_so_far[current] + graph.edges.get((current, next_node), float('inf'))
+            new_cost = cost_so_far[current] + euclidean_distance(graph.nodes[current], graph.nodes[next_node])
             if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
                 cost_so_far[next_node] = new_cost
                 priority = new_cost + heuristic(next_node, goal, graph)
@@ -211,6 +236,7 @@ def view_path(vertices, faces, path):
     mat.shader = "unlitLine"
     mat.line_width = 10  # note that this is scaled with respect to pixels,
 
+
     # Visualize
     o3d.visualization.draw([
         {
@@ -233,6 +259,7 @@ def view_path(vertices, faces, path):
     ])
 
 
+
 def main():
     """
     This is the main function where the program starts. It initializes the graph, 
@@ -245,8 +272,9 @@ def main():
     obj_file_path = os.path.join(cur_file_path, '../data', file_name)
 
     vertices, faces = load_obj(obj_file_path)
-
-    graph = build_graph(vertices, faces)
+    
+    tri_faces = quad_to_tri(faces)
+    graph = build_graph(vertices,tri_faces)
 
     # 定义起始和目标节点（索引或位置）
     start_node_idx = random.randint(0, len(vertices) - 1)  # 随机选择起始点的索引
@@ -260,6 +288,9 @@ def main():
     print("Path:", path)
     
     view_path(vertices, faces, path)
+
+
+
 
 if __name__ == "__main__":
     main()
