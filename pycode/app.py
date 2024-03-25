@@ -159,52 +159,48 @@ class App:
                     self.widget3d.scene.remove_geometry("end")
                     self.widget3d.scene.remove_geometry("path")
 
-                    # Init path planning visulization
-                    start_sphere = o3d.geometry.TriangleMesh.create_sphere(
-                        radius=0.5)
-                    start_sphere.paint_uniform_color([1, 0, 0])  # red
-
-                    end_sphere = o3d.geometry.TriangleMesh.create_sphere(
-                        radius=0.5)
-                    end_sphere.paint_uniform_color([0, 0, 1])  # blue
-
-                    path_line_set = o3d.geometry.LineSet()
-                    path_line_set.paint_uniform_color([1, 0, 0])  # red
-                    path_line_set.points = o3d.utility.Vector3dVector(
-                        self.points.points)
-
-                    sphere_mat = rendering.MaterialRecord()
-
-                    path_mat = rendering.MaterialRecord()
-                    path_mat.shader = "unlitLine"
-                    path_mat.line_width = 10
-
                     # draw start point
                     start_point = self.points.points[start_index]
+                    start_sphere = o3d.geometry.TriangleMesh.create_sphere(
+                        radius=0.5)
                     start_sphere.translate(
                         [start_point[0], start_point[1], start_point[2]])
+                    start_sphere.paint_uniform_color([1, 0, 0])  # red
+                    mat = rendering.MaterialRecord()
                     self.widget3d.scene.add_geometry("start", start_sphere,
-                                                     sphere_mat)
+                                                     mat)
 
                     if end_index is not None:
                         self.picked_point_indices.pop(0)
 
                         # draw end point
                         end_point = self.points.points[end_index]
+                        end_sphere = o3d.geometry.TriangleMesh.create_sphere(
+                            radius=0.5)
                         end_sphere.translate(
                             [end_point[0], end_point[1], end_point[2]])
+                        end_sphere.paint_uniform_color([0, 0, 1])  # blue
                         self.widget3d.scene.add_geometry(
-                            "end", end_sphere, sphere_mat)
+                            "end", end_sphere, mat)
 
                         # Find the path
                         path = self.graph.astar(start_index, end_index)
                         path_lines = [[path[i], path[i + 1]]
                                       for i in range(len(path) - 1)]
 
+                        path_line_set = o3d.geometry.LineSet()
+                        path_line_set.points = o3d.utility.Vector3dVector(
+                            self.points.points)
                         path_line_set.lines = o3d.utility.Vector2iVector(
                             path_lines)
+                        path_line_set.paint_uniform_color([1, 0, 0])  # red
+
+                        line_mat = o3d.visualization.rendering.MaterialRecord()
+                        line_mat.shader = "unlitLine"
+                        line_mat.line_width = 10
+
                         self.widget3d.scene.add_geometry(
-                            "path", path_line_set, path_mat)
+                            "path", path_line_set, line_mat)
 
             self.widget3d.scene.scene.render_to_depth_image(depth_callback)
 
