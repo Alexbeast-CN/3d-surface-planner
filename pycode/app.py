@@ -184,7 +184,7 @@ class App:
                             "end", end_sphere, mat)
 
                         # Find the path
-                        path = self.graph.astar(start_index, end_index)
+                        path = self.graph.bidirectional_astar(start_index, end_index)
                         path_lines = [[path[i], path[i + 1]]
                                       for i in range(len(path) - 1)]
 

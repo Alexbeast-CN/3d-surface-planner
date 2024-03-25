@@ -11,6 +11,7 @@ import os
 import heapq
 import random
 
+import numpy as np
 import open3d as o3d
 import obj_utils
 
@@ -91,6 +92,65 @@ class Graph:
         dy = pos_a[1] - pos_b[1]
         dz = pos_a[2] - pos_b[2]
         return (dx**2 + dy**2 + dz**2)**0.5
+    
+
+    def bidirectional_astar(self, start, goal):
+        # 初始化起始节点和目标节点的优先队列、已访问集合和路径记录
+        start_frontier = []
+        goal_frontier = []
+        heapq.heappush(start_frontier, (0, start))
+        heapq.heappush(goal_frontier, (0, goal))
+        start_came_from = {}
+        goal_came_from = {}
+        start_cost_so_far = {}
+        goal_cost_so_far = {}
+        start_came_from[start] = None
+        goal_came_from[goal] = None
+        start_cost_so_far[start] = 0
+        goal_cost_so_far[goal] = 0
+
+        # 双向搜索直到相遇
+        while start_frontier and goal_frontier:
+            _, current_start = heapq.heappop(start_frontier)
+            _, current_goal = heapq.heappop(goal_frontier)
+
+            # 检查是否相遇
+            if current_start in goal_came_from:
+                start_path = self._reconstruct_path(start_came_from, current_start)
+                goal_path = self._reconstruct_path(goal_came_from, current_start)
+                goal_path.reverse()
+                
+                return start_path + goal_path
+
+            # 从起始节点开始搜索
+            for next_node in self.neighbors(current_start):
+                new_cost = start_cost_so_far[current_start] + self._heuristic(current_start, next_node)
+                if next_node not in start_cost_so_far or new_cost < start_cost_so_far[next_node]:
+                    start_cost_so_far[next_node] = new_cost
+                    priority = new_cost + self._heuristic(next_node, goal)
+                    heapq.heappush(start_frontier, (priority, next_node))
+                    start_came_from[next_node] = current_start
+
+            # 从目标节点开始搜索
+            for next_node in self.neighbors(current_goal):
+                new_cost = goal_cost_so_far[current_goal] + self._heuristic(current_goal, next_node)
+                if next_node not in goal_cost_so_far or new_cost < goal_cost_so_far[next_node]:
+                    goal_cost_so_far[next_node] = new_cost
+                    priority = new_cost + self._heuristic(next_node, start)
+                    heapq.heappush(goal_frontier, (priority, next_node))
+                    goal_came_from[next_node] = current_goal
+
+        return None
+
+    def _reconstruct_path(self, came_from, current):
+        path = []
+        while current is not None:
+            path.append(current)
+            current = came_from[current]
+        path.reverse()            
+
+        return path
+
 
     def astar(self, start, goal):
         """
@@ -254,7 +314,7 @@ def main():
     print("Goal node index:", goal_node_idx)
 
     # 计算最短路径
-    path = graph.astar(start_node_idx, goal_node_idx)
+    path = graph.bidirectional_astar(start_node_idx, goal_node_idx)
     print("Shortest path:", path)
     view_path(vertices, faces, path)
 
