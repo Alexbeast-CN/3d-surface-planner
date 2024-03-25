@@ -1,5 +1,5 @@
 """
-This module provides functions for loading and visualizing OBJ files using Open3D.
+This module provides functions for process and visualizing OBJ files using Open3D.
 """
 
 from typing import Tuple
@@ -21,21 +21,25 @@ def load_obj(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     faces = []
     vertices = []
 
-    with open(filename, 'r', encoding='utf-8') as file:
-        for line in file:
-            tokens = line.split()
-            if not tokens:
-                continue
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            for line in file:
+                tokens = line.split()
+                if not tokens:
+                    continue
 
-            prefix = tokens[0]
-            # Read vertices
-            if prefix == 'v':
-                p = np.array([float(x) for x in tokens[1:]], dtype=np.float32)
-                vertices.append(p)
-            # Read facets
-            elif prefix == 'f':
-                f = np.array([int(x) - 1 for x in tokens[1:]], dtype=int)
-                faces.append(f)
+                prefix = tokens[0]
+                # Read vertices
+                if prefix == 'v':
+                    p = np.array([float(x) for x in tokens[1:]],
+                                 dtype=np.float32)
+                    vertices.append(p)
+                # Read facets
+                elif prefix == 'f':
+                    f = np.array([int(x) - 1 for x in tokens[1:]], dtype=int)
+                    faces.append(f)
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
 
     vertices = np.array(vertices)
     faces = np.array(faces)
@@ -62,6 +66,23 @@ def quad_to_tri(faces: np.ndarray) -> np.ndarray:
     return np.array(tri_faces)
 
 
+def get_lineset_from_faces(faces: np.ndarray) -> np.ndarray:
+    """
+    Get the lines from the faces.
+
+    Args:
+        faces (np.ndarray): The faces as a NumPy array.
+
+    Returns:
+        np.ndarray: The lines as a NumPy array.
+    """
+    lines_list = []
+    for face in faces:
+        for i, _ in enumerate(face):
+            lines_list.append([face[i], face[(i + 1) % len(face)]])
+    return np.array(lines_list)
+
+
 def view_obj(filepath):
     """
     View an OBJ file as a point cloud and wireframe.
@@ -81,12 +102,7 @@ def view_obj(filepath):
     points = o3d.geometry.PointCloud()
     points.points = o3d.utility.Vector3dVector(vertices)
 
-    lines_list = []
-    for face in faces:
-        for i, _ in enumerate(face):
-            lines_list.append([face[i], face[(i + 1) % len(face)]])
-
-    lines = np.array(lines_list, dtype=int)
+    lines = get_lineset_from_faces(faces)
 
     # Create a line set
     line_set = o3d.geometry.LineSet()
@@ -107,7 +123,7 @@ def view_obj(filepath):
     vis.add_geometry(line_set)
     vis.add_geometry(points)
 
-    # Run the visualizer
+    # Run the visualizerobj_utils
     vis.run()
 
 
@@ -118,7 +134,7 @@ def main():
     # Load the .obj file
     cur_file_path = os.path.dirname(os.path.realpath(__file__))
     file_name = 'dragon_quad.obj'
-    obj_file_path = os.path.join(cur_file_path, '../data', file_name)
+    obj_file_path = os.path.join(cur_file_path, 'data', file_name)
 
     # Visualize the object
     view_obj(obj_file_path)
