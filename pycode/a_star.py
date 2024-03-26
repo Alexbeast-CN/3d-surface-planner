@@ -114,6 +114,10 @@ class Graph:
         Returns:
         list: The shortest path from the start node to the goal node as a list of node ids.
         """
+        # Check if start and goal are the same
+        if start == goal:
+            return None
+
         # 初始化起始节点和目标节点的优先队列、已访问集合和路径记录
         start_frontier = []
         goal_frontier = []
@@ -179,6 +183,10 @@ class Graph:
         Returns:
         list: The shortest path from the start node to the goal node as a list of node ids.
         """
+        # Check if start and goal are the same
+        if start == goal:
+            return None
+
         # 初始化优先队列和已访问集合
         frontier = []
         heapq.heappush(frontier, (0, start))
