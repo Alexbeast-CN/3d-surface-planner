@@ -11,7 +11,6 @@ import os
 import heapq
 import random
 
-import numpy as np
 import open3d as o3d
 import obj_utils
 
@@ -92,9 +91,29 @@ class Graph:
         dy = pos_a[1] - pos_b[1]
         dz = pos_a[2] - pos_b[2]
         return (dx**2 + dy**2 + dz**2)**0.5
-    
 
+    @staticmethod
+    def _reconstruct_path(came_from, current):
+        path = []
+        while current is not None:
+            path.append(current)
+            current = came_from[current]
+        path.reverse()
+
+        return path
+
+    # pylint: disable=R0914
     def bidirectional_astar(self, start, goal):
+        """
+        find path from both start and goal node, and meet in the middle.
+
+        Parameters:
+        start (Any): The id of the start node.
+        goal (Any): The id of the goal node.
+
+        Returns:
+        list: The shortest path from the start node to the goal node as a list of node ids.
+        """
         # 初始化起始节点和目标节点的优先队列、已访问集合和路径记录
         start_frontier = []
         goal_frontier = []
@@ -116,16 +135,20 @@ class Graph:
 
             # 检查是否相遇
             if current_start in goal_came_from:
-                start_path = self._reconstruct_path(start_came_from, current_start)
-                goal_path = self._reconstruct_path(goal_came_from, current_start)
+                start_path = self._reconstruct_path(start_came_from,
+                                                    current_start)
+                goal_path = self._reconstruct_path(goal_came_from,
+                                                   current_start)
                 goal_path.reverse()
-                
-                return start_path + goal_path
+
+                return start_path[:-1] + goal_path
 
             # 从起始节点开始搜索
             for next_node in self.neighbors(current_start):
-                new_cost = start_cost_so_far[current_start] + self._heuristic(current_start, next_node)
-                if next_node not in start_cost_so_far or new_cost < start_cost_so_far[next_node]:
+                new_cost = start_cost_so_far[current_start] + self._heuristic(
+                    current_start, next_node)
+                if next_node not in start_cost_so_far \
+                    or new_cost < start_cost_so_far[next_node]:
                     start_cost_so_far[next_node] = new_cost
                     priority = new_cost + self._heuristic(next_node, goal)
                     heapq.heappush(start_frontier, (priority, next_node))
@@ -133,24 +156,16 @@ class Graph:
 
             # 从目标节点开始搜索
             for next_node in self.neighbors(current_goal):
-                new_cost = goal_cost_so_far[current_goal] + self._heuristic(current_goal, next_node)
-                if next_node not in goal_cost_so_far or new_cost < goal_cost_so_far[next_node]:
+                new_cost = goal_cost_so_far[current_goal] + self._heuristic(
+                    current_goal, next_node)
+                if next_node not in goal_cost_so_far or new_cost < goal_cost_so_far[
+                        next_node]:
                     goal_cost_so_far[next_node] = new_cost
                     priority = new_cost + self._heuristic(next_node, start)
                     heapq.heappush(goal_frontier, (priority, next_node))
                     goal_came_from[next_node] = current_goal
 
         return None
-
-    def _reconstruct_path(self, came_from, current):
-        path = []
-        while current is not None:
-            path.append(current)
-            current = came_from[current]
-        path.reverse()            
-
-        return path
-
 
     def astar(self, start, goal):
         """
@@ -171,6 +186,7 @@ class Graph:
         cost_so_far = {}
         came_from[start] = None
         cost_so_far[start] = 0
+        find_path = False
 
         # 遍历图直到找到目标节点或队列为空
         while frontier:
@@ -178,6 +194,7 @@ class Graph:
 
             # 检查是否到达目标节点
             if current == goal:
+                find_path = True
                 break
 
             # 遍历当前节点的所有邻居
@@ -191,19 +208,14 @@ class Graph:
                     heapq.heappush(frontier, (priority, next_node))
                     came_from[next_node] = current
 
-        # 回溯找到完整路径
-        path = []
-        current = goal
-        while current is not None:
-            path.append(current)
-            current = came_from[current]
+        if not find_path:
+            print("No path found")
+            return None
 
-        path.reverse()
-
-        return path
+        return self._reconstruct_path(came_from, goal)
 
 
-def build_graph(vertices, faces):
+def build_graph(vertices, vex_normals, faces):
     """
     This function is used to build a graph from a list of vertices and faces.
 
@@ -216,15 +228,21 @@ def build_graph(vertices, faces):
     """
     graph = Graph()
 
+    external_edge_points = obj_utils.find_external_edge_points(
+        faces, vertices, vex_normals)
+
     # 添加节点
     for i, vertex in enumerate(vertices):
-        graph.add_node(i, pos=vertex)
+        if i not in external_edge_points:
+            graph.add_node(i, pos=vertex)
 
     # Add edges
     for face in faces:
         for i, u in enumerate(face):
             v = face[(i + 1) % len(face)]
-            graph.add_edge(u, v, weight=1)
+            if u not in external_edge_points \
+                    and v not in external_edge_points:
+                graph.add_edge(u, v, weight=1)
 
     # 构建邻接表
     graph.build_adj_list()
@@ -247,13 +265,17 @@ def view_path(vertices, faces, path):
     # Create mesh
     mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices),
                                      o3d.utility.Vector3iVector(tri_faces))
+    mesh.compute_vertex_normals()
+    vex_normals = mesh.vertex_normals
     mesh.paint_uniform_color([1, 1, 1])  # white
 
     # Create a point cloud
     points = o3d.geometry.PointCloud()
     points.points = o3d.utility.Vector3dVector(vertices)
 
-    lines_list = obj_utils.get_lineset_from_faces(faces)
+    external_edge_points = obj_utils.find_external_edge_points(
+        faces, vertices, vex_normals)
+    lines_list = obj_utils.get_lineset_from_faces(faces, external_edge_points)
 
     lines = o3d.geometry.LineSet()
     lines.points = o3d.utility.Vector3dVector(vertices)
@@ -301,10 +323,16 @@ def main():
     file_name = 'plate_1_quad.obj'
     obj_file_path = os.path.join(cur_file_path, '../data', file_name)
 
-    vertices, faces = obj_utils.load_obj(obj_file_path)
+    vertices, vex_normals, faces = obj_utils.load_obj(obj_file_path)
 
     tri_faces = obj_utils.quad_to_tri(faces)
-    graph = build_graph(vertices, tri_faces)
+    if vex_normals.size == 0:
+        mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices),
+                                         o3d.utility.Vector3iVector(tri_faces))
+        mesh.compute_vertex_normals()
+        vex_normals = mesh.vertex_normals
+
+    graph = build_graph(vertices, vex_normals, tri_faces)
 
     # 定义起始和目标节点（索引或位置）
     start_node_idx = random.randint(0, len(vertices) - 1)  # 随机选择起始点的索引
@@ -314,9 +342,10 @@ def main():
     print("Goal node index:", goal_node_idx)
 
     # 计算最短路径
-    path = graph.bidirectional_astar(start_node_idx, goal_node_idx)
-    print("Shortest path:", path)
-    view_path(vertices, faces, path)
+    path = graph.astar(start_node_idx, goal_node_idx)
+    # path = graph.bidirectional_astar(start_node_idx, goal_node_idx)
+    if path is not None:
+        view_path(vertices, faces, path)
 
 
 if __name__ == '__main__':

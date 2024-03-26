@@ -64,26 +64,34 @@ class App:
         self.widget3d.frame = r
 
     def _load_obj(self, filename: str):
-        vertices, faces = obj_utils.load_obj(filename)
+        vertices, self.vex_normals, faces = obj_utils.load_obj(filename)
 
         # create points instance
         self.points.points = o3d.utility.Vector3dVector(vertices)
-
-        # create lines instance
-        lines_list = obj_utils.get_lineset_from_faces(faces)
-        self.lines.points = o3d.utility.Vector3dVector(vertices)
-        self.lines.lines = o3d.utility.Vector2iVector(lines_list)
 
         # create mesh instance
         tri_faces = obj_utils.quad_to_tri(faces)
         self.mesh.triangles = o3d.utility.Vector3iVector(tri_faces)
         self.mesh.vertices = o3d.utility.Vector3dVector(vertices)
 
+        if self.vex_normals.size == 0:
+            self.mesh.compute_vertex_normals()
+            self.vex_normals = self.mesh.vertex_normals
+
+        self.external_edge_points = obj_utils.find_external_edge_points(
+            faces, vertices, self.vex_normals)
+
+        # create lines instance
+        lines_list = obj_utils.get_lineset_from_faces(
+            faces, self.external_edge_points)
+        self.lines.points = o3d.utility.Vector3dVector(vertices)
+        self.lines.lines = o3d.utility.Vector2iVector(lines_list)
+
     def _display_geometries(self):
         # Set the colors
         self.points.paint_uniform_color([0.5, 0.5, 1])  # light blue
         self.lines.paint_uniform_color([0.5, 0.5, 1])  # light blue
-        self.mesh.paint_uniform_color([1.0, 1.0, 1.0])  # white
+        self.mesh.paint_uniform_color([0.3, 0.3, 0.3])  # grey
 
         # Set the materials
         point_mat = rendering.MaterialRecord()
@@ -110,10 +118,13 @@ class App:
     def _build_graph(self):
         # Build the graph
         for i, vertex in enumerate(self.points.points):
-            self.graph.add_node(i, pos=vertex)
+            if i not in self.external_edge_points:
+                self.graph.add_node(i, pos=vertex)
 
         for line in self.lines.lines:
-            self.graph.add_edge(line[0], line[1], 1)
+            if line[0] not in self.external_edge_points \
+                    and line[1] not in self.external_edge_points:
+                self.graph.add_edge(line[0], line[1], 1)
 
         self.graph.build_adj_list()
 
@@ -162,7 +173,7 @@ class App:
                     # draw start point
                     start_point = self.points.points[start_index]
                     start_sphere = o3d.geometry.TriangleMesh.create_sphere(
-                        radius=0.5)
+                        radius=0.05)
                     start_sphere.translate(
                         [start_point[0], start_point[1], start_point[2]])
                     start_sphere.paint_uniform_color([1, 0, 0])  # red
@@ -176,7 +187,7 @@ class App:
                         # draw end point
                         end_point = self.points.points[end_index]
                         end_sphere = o3d.geometry.TriangleMesh.create_sphere(
-                            radius=0.5)
+                            radius=0.05)
                         end_sphere.translate(
                             [end_point[0], end_point[1], end_point[2]])
                         end_sphere.paint_uniform_color([0, 0, 1])  # blue
@@ -184,23 +195,29 @@ class App:
                             "end", end_sphere, mat)
 
                         # Find the path
-                        path = self.graph.bidirectional_astar(start_index, end_index)
-                        path_lines = [[path[i], path[i + 1]]
-                                      for i in range(len(path) - 1)]
+                        # path = self.graph.astar(start_index, end_index)
+                        path = self.graph.bidirectional_astar(
+                            start_index, end_index)
+                        if path is not None:
+                            path_lines = [[path[i], path[i + 1]]
+                                          for i in range(len(path) - 1)]
 
-                        path_line_set = o3d.geometry.LineSet()
-                        path_line_set.points = o3d.utility.Vector3dVector(
-                            self.points.points)
-                        path_line_set.lines = o3d.utility.Vector2iVector(
-                            path_lines)
-                        path_line_set.paint_uniform_color([1, 0, 0])  # red
+                            path_line_set = o3d.geometry.LineSet()
+                            path_line_set.points = o3d.utility.Vector3dVector(
+                                self.points.points)
+                            path_line_set.lines = o3d.utility.Vector2iVector(
+                                path_lines)
+                            path_line_set.paint_uniform_color([1, 0, 0])  # red
 
-                        line_mat = o3d.visualization.rendering.MaterialRecord()
-                        line_mat.shader = "unlitLine"
-                        line_mat.line_width = 10
+                            line_mat = o3d.visualization.rendering.MaterialRecord(
+                            )
+                            line_mat.shader = "unlitLine"
+                            line_mat.line_width = 10
 
-                        self.widget3d.scene.add_geometry(
-                            "path", path_line_set, line_mat)
+                            self.widget3d.scene.add_geometry(
+                                "path", path_line_set, line_mat)
+                        else:
+                            print("No path found")
 
             self.widget3d.scene.scene.render_to_depth_image(depth_callback)
 
@@ -216,7 +233,7 @@ def main():
     app.initialize()
 
     cur_file_path = os.path.dirname(os.path.realpath(__file__))
-    file_name = 'plate_1_quad.obj'
+    file_name = 'cube_with_hole.obj'
     obj_file_path = os.path.join(cur_file_path, '../data', file_name)
 
     App(obj_file_path)
