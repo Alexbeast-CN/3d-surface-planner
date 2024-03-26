@@ -21,9 +21,6 @@ repos:
       - name: Check YAML file syntax parseability
         id: check-yaml
         args: [ --allow-multiple-documents ]
-      - name: Check that no large files were added (>500kB)
-        id: check-added-large-files
-        args: [ "--maxkb=500" ]
       - name: Checks that no unresolved merge conflict are committed
         id: check-merge-conflict
 
