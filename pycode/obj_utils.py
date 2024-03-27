@@ -87,17 +87,20 @@ def get_lineset_from_faces(
     Returns:
         np.ndarray: The lines as a NumPy array.
     """
-    lines = []
+    if external_edge_points is None:
+        external_edge_points = np.array([])
+    external_edge_points = set(point for point in external_edge_points)
+
+    lines = set()
     for face in faces:
         for i, _ in enumerate(face):
             v1 = face[i]
             v2 = face[(i + 1) % len(face)]
-            if v1 not in external_edge_points \
-                    and v2 not in external_edge_points \
-                    and [v1, v2] not in lines \
-                    and [v2, v1] not in lines:
-                lines.append([v1, v2])
-    return np.array(lines)
+            if v1 not in external_edge_points and v2 not in external_edge_points:
+                line = tuple(sorted([v1, v2]))
+                if line not in lines:
+                    lines.add(line)
+    return np.array(list(lines))
 
 
 def cal_face_normals(vertices: np.ndarray, faces: np.ndarray) -> np.ndarray:
